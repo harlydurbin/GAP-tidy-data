@@ -3,3 +3,4 @@
 .RData
 .Ruserdata
 gap_sample_data.R
+*.gslides

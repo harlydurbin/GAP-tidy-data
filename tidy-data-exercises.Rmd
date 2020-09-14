@@ -58,11 +58,13 @@ R doesn't play well with column names, so after we pivot the data we're going to
 
 Load the packages:
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 library(tidyr)
 library(dplyr)
 library(janitor)
 ```
+
+The resulting data frame should have 4 columns and 1,635 rows.
 
 ```{r}
   
@@ -108,7 +110,7 @@ read_excel(here("data/sample-data.xlsx"),
   filter(replicate != "Rep 1")
 ```
 
-Pivoting our data from wide to long format created many rows with no value in the `conc_day1` column, which aren't helpful to us. To remove these using `filter()`, we need to give a slightly different command. The NA value is special in R, so to do this we need to use the `is.na()` function along with the exclamation point (which again, means "not").
+Pivoting our data from wide to long format created many rows with no value in the `conc_day1` column, which aren't helpful to us. To remove these using `filter()`, we need to give a slightly different command. The `NA` value is special in R, so to do this we need to use the `is.na()` function along with the exclamation point (which again, means "not").
 
 ```{r}
 read_excel(here("data/sample-data.xlsx"),
@@ -178,18 +180,22 @@ If we wanted instead exclude cows that had an observation on day 1 but not day 3
 
 ```{r}
 left_join(x = d3,
-          y = d3,
+          y = d1,
           by = c("replicate", "hormone_trt", "cow_id"))
 ```
 
 # Mutating
 
-```{r, eval= FALSE}
+As mentioned previously, our data is from a study of the effects of hormone supplementation on pregnancy rate in cattle. Use `mutate()` from the `{dplyr}` package to calculate how much hormone concentration changed after supplementation for each row then store the results in a new column called `change`.
+
+```{r, error=TRUE}
 full_join(x = d1,
           y = d3,
           by = c("replicate", "hormone_trt", "cow_id")) %>% 
   mutate(change = conc_day3 - conc_day1)
 ```
+
+Right now, R thinks that the columns `conc_day1` and `conc_day2` contain character values (like words) rather than numbers, so we get an error when we try to use those columns to do math. We can also use `mutate()` to change `conc_day1` and `conc_day2` to numeric columns. Assign the joined and mutated data frame to an object called `d1_d3`.
 
 ```{r}
 d1_d3 <-
@@ -203,12 +209,7 @@ d1_d3 <-
 
 # Grouping and summarizing
 
-```{r}
-
-d1_d3 %>% 
-  summarise(mean(change))
-
-```
+Similar to Microsoft Excel’s pivot table functions, we can use `summarise()` from the `{dplyr}` package to quickly generate summaries of data. For example, if we wanted to calculate the mean of all values in the `change` column, we'd do:
 
 ```{r}
 
@@ -217,6 +218,9 @@ d1_d3 %>%
 
 ```
 
+The `na.rm` argument tells `mean()` to ignore missing values. Without it, `summarise()` would return an `NA`.
+Just like all of the other `{dplyr}` functions we've used, `summarise()` returns a data frame. This means we can change the column name in the summary data frame.
+
 ```{r}
 
 d1_d3 %>% 
@@ -224,13 +228,7 @@ d1_d3 %>%
 
 ```
 
-```{r}
-
-d1_d3 %>% 
-  group_by(hormone_trt) %>% 
-  summarise(mean_change = mean(change, na.rm = TRUE))
-
-```
+In addition to the mean change, summarize the minimum and maximum `change` values. 
 
 ```{r}
 
@@ -241,6 +239,20 @@ d1_d3 %>%
             max_change = max(change, na.rm = TRUE))
 
 ```
+
+We can also use `group_by()` to summarize data within different levels of a variable...
+
+```{r}
+
+d1_d3 %>% 
+  group_by(hormone_trt) %>% 
+  summarise(mean_change = mean(change, na.rm = TRUE),
+            min_change = min(change, na.rm = TRUE),
+            max_change = max(change, na.rm = TRUE))
+
+```
+
+...or within different levels of multiple variables.
 
 ```{r}
 
@@ -252,10 +264,12 @@ d1_d3 %>%
 
 ```
 
+Finally, we can use `tally()` to generate simple counts of data. Using `tally()` is equivalent to using `summarise(n = n())`.
+
 ```{r}
 
 d1_d3 %>% 
-  group_by(replicate) %>% 
+  group_by(hormone_trt) %>% 
   tally()
 ```
 
