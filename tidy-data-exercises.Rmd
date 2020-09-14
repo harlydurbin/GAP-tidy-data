@@ -1,0 +1,279 @@
+---
+title: "A brief intro to using R and the tidyverse for data manipulation"
+author: "Harly Durbin"
+date: "9/16/2020"
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Some background on how we're doing what we're doing
+
+* Currently, we're working inside of **RStudio**, which allows you to interface with the R software. 
+* We are using an **R Markdown document**. R Markdown documents have the file extension ".Rmd" and can only be opened in RStudio. R Markdowns work just like normal R scripts, except that they allow you mix commentary as plain text and code housed in "chunks". 
+    + To create a new chunk, click the "Insert" tab in the upper right hand of this window then select "R"
+    + R Markdown documents can be "rendered" to lots of file formats, including PDFs, Word Docs, and interactive HTML. This allows you create a report of your rendered code and figures alongside commentary. We're not going to cover this today, but I'd recommend checking out "R Markdown: the Definitive Guide" by Yihui Xie which can be found free online [here:](https://bookdown.org/yihui/rmarkdown/)
+* All of our data, analysis, and results will be in a single file with multiple subfiles called a **Project**. More about that [here:](https://support.rstudio.com/hc/en-us/articles/200526207-Using-Projects)
+
+# Import "Day 1" data using the `{readxl}` package
+
+Our data is stored in the Excel file "sample-data.xlsx", located in the "data" folder of our project. It's a shuffled and modified version of a friend's data from a project studying the effects of supplementation with a certain hormone on conception rate in beef cattle. Hormone concentration was collected on the same day as supplementation (in the "Day 1" sheet) and then again two days later (in the "Day 3" sheet). This project was conducted in 3 replicates over 3 years. 
+
+We're going to load the `{readxl}` package to read our spreadsheet data into R. We're also going to load the `here` package. When you use the the `here()` command from the `{here}` package to designate a file path, R knows to look for the file relative to root of your project directory. I've pre-installed all of the packages we're using today, but normally you'd have to use `install.packages()` to download them to your computer first before using `library()` to load them.
+
+```{r}
+library(readxl)
+library(here)
+```
+
+Now that we've loaded our packages, let's try taking a look at the data stored in the "Day 1" sheet. It should have 5 columns and 547 rows. 
+
+```{r}
+
+read_excel(here("data/sample-data.xlsx"),
+           sheet = "Day 1")
+
+```
+
+It looks like the data wasn't imported correctly because the spreadsheet contains 3 rows of notes at the top. Try again skipping those rows by adding the `skip` argument in `read_excel()`.
+It also looks like missing values were coded with a dot. In order to avoid implied `NA`s or confusion about whether or not the dots represent a value, we're also going to add the `na` argument to tell `read_excel` to interpret dots as `NA`s. 
+
+```{r}
+
+read_excel(here("data/sample-data.xlsx"),
+           sheet = "Day 1",
+           skip = 3,
+           na = ".")
+
+```
+We've imported the data, but it still violates a rule of tidy data storage in spreadsheets. Head back to the main room to discuss.
+
+# "Rectangulating" the Day 1 data using `pivot_longer()` from the `{tidyr}` package
+
+Now, we'll use the `pivot_longer()` command from the `{tidyr}` package to reshape the Day 1 data. We'll use the pipe, loaded from the `{dplyr}` package, to chain this to our previous `read_excel()` command.
+R doesn't play well with column names, so after we pivot the data we're going to use the `clean_names()` function from the `{janitor}` package in order to automatically generate R-friendly column names. We could have also chosen manually rename these columns using [`rename()`](https://dplyr.tidyverse.org/reference/rename.html) or [`select()`](https://dplyr.tidyverse.org/reference/select.html) from the `{dplyr}` package.
+
+Load the packages:
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(janitor)
+```
+
+```{r}
+  
+read_excel(here("data/sample-data.xlsx"),
+           sheet = "Day 1",
+           skip = 3,
+           na = ".") %>%
+  pivot_longer(cols = c("Rep 1", "Rep 2", "Rep 3"),
+               names_to = "replicate",
+               values_to = "conc_day1") %>%
+  clean_names()
+```
+
+# Filtering
+
+`filter()` from the `{dplyr}` package allows us to extract rows based on matching. In R, "==" means equal to and "!=" means NOT equal to. 
+
+For example, if we wanted to subset the data to replicate 1 only: 
+
+```{r}
+read_excel(here("data/sample-data.xlsx"),
+           sheet = "Day 1",
+           skip = 3,
+           na = ".") %>%
+  pivot_longer(cols = c("Rep 1", "Rep 2", "Rep 3"),
+               names_to = "replicate",
+               values_to = "conc_day1") %>%
+  clean_names() %>%
+  filter(replicate == "Rep 1")
+```
+
+Or to all replicates except replicate 1: 
+
+```{r}
+read_excel(here("data/sample-data.xlsx"),
+           sheet = "Day 1",
+           skip = 3,
+           na = ".") %>%
+  pivot_longer(cols = c("Rep 1", "Rep 2", "Rep 3"),
+               names_to = "replicate",
+               values_to = "conc_day1") %>%
+  clean_names() %>%
+  filter(replicate != "Rep 1")
+```
+
+Pivoting our data from wide to long format created many rows with no value in the `conc_day1` column, which aren't helpful to us. To remove these using `filter()`, we need to give a slightly different command. The NA value is special in R, so to do this we need to use the `is.na()` function along with the exclamation point (which again, means "not").
+
+```{r}
+read_excel(here("data/sample-data.xlsx"),
+           sheet = "Day 1",
+           skip = 3,
+           na = ".") %>%
+  pivot_longer(cols = c("Rep 1", "Rep 2", "Rep 3"),
+               names_to = "replicate",
+               values_to = "conc_day1") %>%
+  clean_names() %>% 
+  filter(!is.na(conc_day1))
+```
+
+To assign the imported, pivoted, and filtered day 1 data with R-friendly column names to an object called `d1`, use the the pointy arrow `<-`
+
+```{r}
+d1 <-
+  read_excel(here("data/sample-data.xlsx"),
+             sheet = "Day 1",
+             skip = 3,
+             na = ".") %>%
+  pivot_longer(cols = c("Rep 1", "Rep 2", "Rep 3"),
+               names_to = "replicate",
+               values_to = "conc_day1") %>%
+  clean_names() %>% 
+  filter(!is.na(conc_day1)) 
+```
+
+
+# Joining the day 1 data and the day 3 data using
+
+First, import, pivot, and filter the data in the day 3 sheet in the same way as the day 1 sheet. Assign it to an object called `d3`. 
+
+```{r}
+d3 <-
+  read_excel(here("data/sample-data.xlsx"),
+             sheet = "Day 3",
+             skip = 3,
+             na = ".") %>% 
+  pivot_longer(cols = c("Rep 1", "Rep 2", "Rep 3"),
+               names_to = "replicate",
+               values_to = "conc_day3") %>% 
+  clean_names() %>% 
+  filter(!is.na(conc_day3)) 
+```
+
+Next, we want to combine the Day 1 and Day 3 data.  
+
+Here, `x` is the first data frame (`d1`), `y` is the second data frame (`d3`), and `by` is the common columns between `x` and `y` that we want to join on (`replicate`, `hormone_trt` and `cow_id`). 
+
+```{r}
+full_join(x = d1,
+          y = d3,
+          by = c("replicate", "hormone_trt", "cow_id"))
+```
+
+You might notice that some cows in some replicates had an E2 observation on one day but not the other. If we wanted to exclude cows that had an observation on day 3 but not day 1, we could provide `left_join()` the same arguments we gave to `full_join()` above. Below, the data frame `d1` is the `x` (or "left hand side") argument.
+
+```{r}
+left_join(x = d1,
+          y = d3,
+          by = c("replicate", "hormone_trt", "cow_id"))
+```
+
+Notice that the resulting data frame above has fewer rows than when we used `full_join()`. This is because six cows had an observation on day 3, but not day 1.
+If we wanted instead exclude cows that had an observation on day 1 but not day 3, we could make `d3` the left hand side argument in `left_join()`. 
+
+```{r}
+left_join(x = d3,
+          y = d3,
+          by = c("replicate", "hormone_trt", "cow_id"))
+```
+
+# Mutating
+
+```{r, eval= FALSE}
+full_join(x = d1,
+          y = d3,
+          by = c("replicate", "hormone_trt", "cow_id")) %>% 
+  mutate(change = conc_day3 - conc_day1)
+```
+
+```{r}
+d1_d3 <-
+  full_join(x = d1,
+            y = d3,
+            by = c("replicate", "hormone_trt", "cow_id")) %>% 
+  mutate(conc_day1 = as.numeric(conc_day1),
+         conc_day3 = as.numeric(conc_day3),
+         change = conc_day3 - conc_day1)
+```
+
+# Grouping and summarizing
+
+```{r}
+
+d1_d3 %>% 
+  summarise(mean(change))
+
+```
+
+```{r}
+
+d1_d3 %>% 
+  summarise(mean(change, na.rm = TRUE))
+
+```
+
+```{r}
+
+d1_d3 %>% 
+  summarise(mean_change = mean(change, na.rm = TRUE))
+
+```
+
+```{r}
+
+d1_d3 %>% 
+  group_by(hormone_trt) %>% 
+  summarise(mean_change = mean(change, na.rm = TRUE))
+
+```
+
+```{r}
+
+d1_d3 %>% 
+  group_by(hormone_trt) %>% 
+  summarise(mean_change = mean(change, na.rm = TRUE),
+            min_change = min(change, na.rm = TRUE),
+            max_change = max(change, na.rm = TRUE))
+
+```
+
+```{r}
+
+d1_d3 %>% 
+  group_by(hormone_trt, replicate) %>% 
+  summarise(mean_change = mean(change, na.rm = TRUE),
+            min_change = min(change, na.rm = TRUE),
+            max_change = max(change, na.rm = TRUE))
+
+```
+
+```{r}
+
+d1_d3 %>% 
+  group_by(replicate) %>% 
+  tally()
+```
+
+`group_by()` is not just for summarizing. It can be used in combination with almost all of the tools mentioned here to perform actions within groups. Often, I use `group_by()` to sample observations (i.e., to subset data down to n randomly selected rows per group). Remember to `ungroup()` data once you're done performing group-wise actions!
+
+# More resources: 
+
+There's an almost overwhelming amount of resources for R users ranging from casual to incredibly specific. Here are a few resources (other than the ones mentioned in the slides) pertaining to the topics we covered today that I often refer back to. 
+
+* [`{tidyverse}` cheatsheets](https://rstudio.com/resources/cheatsheets/): I have these printed and bound and take them literally EVERYWHERE
+* [Sharla Gelfand's "Strategies for working with new data"](https://sharla.party/post/new-data-strategies/)
+* [`{readxl}` workflows](https://readxl.tidyverse.org/articles/articles/readxl-workflows.html)
+* Suzan Baert did a series of tutorials in early 2018 that I refer back to more often than the official manuals for the packages and functions she covers. I'd HIGHLY recommend checking them out: 
+    + [Suzan Baert's "Data Wrangling Part 1: Basic to Advanced Ways to Select Columns"](https://suzanbaert.netlify.app/2018/01/dplyr-tutorial-1/)
+    + [Suzan Baert's "Data Wrangling Part 2: Transforming your columns into the right shape"](https://suzan.rbind.io/2018/02/dplyr-tutorial-2/)
+    + [Suzan Baert's "Data Wrangling Part 3: Basic and more advanced ways to filter rows"](https://suzan.rbind.io/2018/02/dplyr-tutorial-3/)
+    + [Suzan Baert's "Data Wrangling Part 4: Summarizing and slicing your data"](https://suzan.rbind.io/2018/04/dplyr-tutorial-4/)
+* A `{dplyr}` tool for more complicated column mutating not mentioned today, but that I use almost daily called `case_when()`: 
+    + [Official manual](https://dplyr.tidyverse.org/reference/case_when.html)
+
+
