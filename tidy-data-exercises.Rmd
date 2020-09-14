@@ -3,6 +3,8 @@ title: "A brief intro to using R and the tidyverse for data manipulation"
 author: "Harly Durbin"
 date: "9/16/2020"
 output:
+  html_document:
+    df_print: paged
   pdf_document: default
 ---
 
