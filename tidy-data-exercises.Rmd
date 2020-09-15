@@ -315,4 +315,6 @@ There's an almost overwhelming amount of resources for R users ranging from casu
 * A `{dplyr}` tool for more complicated column mutating not mentioned today, but that I use almost daily called `case_when()`: 
     + [Official manual](https://dplyr.tidyverse.org/reference/case_when.html)
 
+## Note
 
+I chose to load packages individually in order to (hopefully) illustrate each function's origin. Alternatively, you could load all of the packages used today and the rest of the packages in the tidyverse suite using `library(tidyverse)`.
