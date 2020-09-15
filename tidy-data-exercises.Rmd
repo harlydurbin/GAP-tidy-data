@@ -142,6 +142,12 @@ d1 <-
 ```
 
 
+```{r}
+d1
+```
+
+We can also click on `d1` in the Environment tab to view it and scroll through it.
+
 # Joining the day 1 data and the day 3 data using
 
 First, import, pivot, and filter the data in the day 3 sheet in the same way as the day 1 sheet. Assign it to an object called `d3`. 
@@ -157,6 +163,10 @@ d3 <-
                values_to = "conc_day3") %>% 
   clean_names() %>% 
   filter(!is.na(conc_day3)) 
+```
+
+```{r}
+d3
 ```
 
 Next, we want to combine the Day 1 and Day 3 data.  
@@ -197,7 +207,17 @@ full_join(x = d1,
   mutate(change = conc_day3 - conc_day1)
 ```
 
-Right now, R thinks that the columns `conc_day1` and `conc_day2` contain character values (like words) rather than numbers, so we get an error when we try to use those columns to do math. We can also use `mutate()` to change `conc_day1` and `conc_day2` to numeric columns. Assign the joined and mutated data frame to an object called `d1_d3`.
+Right now, R thinks that the columns `conc_day1` and `conc_day3` contain character values (like words) rather than numbers, so we get an error when we try to use those columns to do math. 
+
+```{r}
+full_join(x = d1,
+          y = d3,
+          by = c("replicate", "hormone_trt", "cow_id")) %>% 
+  str()
+```
+
+
+We can also use `mutate()` to change `conc_day1` and `conc_day3` to numeric columns. Assign the joined and mutated data frame to an object called `d1_d3`.
 
 ```{r}
 d1_d3 <-
@@ -207,6 +227,10 @@ d1_d3 <-
   mutate(conc_day1 = as.numeric(conc_day1),
          conc_day3 = as.numeric(conc_day3),
          change = conc_day3 - conc_day1)
+```
+
+```{r}
+d1_d3
 ```
 
 # Grouping and summarizing
@@ -235,7 +259,6 @@ In addition to the mean change, summarize the minimum and maximum `change` value
 ```{r}
 
 d1_d3 %>% 
-  group_by(hormone_trt) %>% 
   summarise(mean_change = mean(change, na.rm = TRUE),
             min_change = min(change, na.rm = TRUE),
             max_change = max(change, na.rm = TRUE))
