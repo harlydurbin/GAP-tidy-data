@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 * We are using an **R Markdown document**. R Markdown documents have the file extension ".Rmd" and can only be opened in RStudio. R Markdowns work just like normal R scripts, except that they allow you mix commentary as plain text and code housed in "chunks". 
     + To create a new chunk, click the "Insert" tab in the upper right hand of this window then select "R"
     + R Markdown documents can be "rendered" to lots of file formats, including PDFs, Word Docs, and interactive HTML. This allows you create a report of your rendered code and figures alongside commentary. We're not going to cover this today, but I'd recommend checking out "R Markdown: the Definitive Guide" by Yihui Xie which can be found free online [here:](https://bookdown.org/yihui/rmarkdown/)
-* All of our data, analysis, and results will be in a single file with multiple subfiles called a **Project**. More about that [here:](https://support.rstudio.com/hc/en-us/articles/200526207-Using-Projects)
+* All of our data, analysis, and results will be in a single folder with multiple sub-folders called a **Project**. More about that [here:](https://support.rstudio.com/hc/en-us/articles/200526207-Using-Projects)
 
 # Import "Day 1" data using the `{readxl}` package
 
@@ -79,6 +79,8 @@ read_excel(here("data/sample-data.xlsx"),
                values_to = "conc_day1") %>%
   clean_names()
 ```
+
+See also `pivot_longer()`'s sister function, `pivot_wider()`, for taking data from long format to wide format.
 
 # Filtering
 
@@ -179,7 +181,7 @@ full_join(x = d1,
           by = c("replicate", "hormone_trt", "cow_id"))
 ```
 
-You might notice that some cows in some replicates had an E2 observation on one day but not the other. If we wanted to exclude cows that had an observation on day 3 but not day 1, we could provide `left_join()` the same arguments we gave to `full_join()` above. Below, the data frame `d1` is the `x` (or "left hand side") argument.
+You might notice that some cows in some replicates had a hormone concentration observation on one day but not the other. If we wanted to exclude cows that had an observation on day 3 but not day 1, we could provide `left_join()` the same arguments we gave to `full_join()` above. Below, the data frame `d1` is the `x` (or "left hand side") argument.
 
 ```{r}
 left_join(x = d1,
